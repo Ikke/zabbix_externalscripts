@@ -1,0 +1,13 @@
+#!/bin/sh
+
+domain=${1?"Usage: $0 <domain> [timeout]"}
+timeout=${2:-2}
+
+curl -m $timeout -s -I http://$domain/ >/dev/null
+
+if [ $? -ne 0 ]
+then
+    echo 0
+else
+    echo 1
+fi

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ $# -lt 1 ]
+then
+    echo "Usage: $0 <domain> [port]"
+    exit
+fi
+
+dir=$(dirname $0)
+lib="$dir/lib"
+
+port=${2-873}
+url="rsync://$1:$port"
+
+msg=$(rsync $url 2>/dev/null)
+
+result=$?
+
+if [ $result -ne 0 ]
+then
+    "$lib"/jq.py status,0 severity,5 result,$result "msg,No connection"
+else
+    "$lib"/jq.py status,1 severity,0 result,$result "msg,$msg"
+fi
+
+
