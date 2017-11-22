@@ -1,13 +1,45 @@
 #!/bin/sh
 
-domain=${1?"Usage: $0 <domain> [timeout]"}
-timeout=${2:-2}
+dir=$(dirname $0)
+lib="$dir/lib"
 
-curl -m $timeout -s -I http://$domain/ >/dev/null
+opts=$(getopt -n check_http -- "rjt:" "$@") || exit 1
+eval set -- "$opts"
 
-if [ $? -ne 0 ]
-then
-    echo 0
+timeout=2
+json=0
+follow_redirects=
+
+while true; do
+    case "$1" in
+        -t) timeout=$2; shift;;
+        -j) json=1;;
+        -r) follow_redirects="-L";;
+        --) shift; break ;;
+        *) echo "Unknown option '$1'"; exit 1;
+    esac
+    shift
+done
+
+test $# -lt 1 && { echo "No url specified"; exit 1; }
+
+url=$1;
+
+output=$(curl -m"$timeout"  \
+    $follow_redirects \
+    -s \
+    --fail \
+    -o/dev/null \
+    --write-out 'http_code,%{http_code}\ntime_total,%{time_total}\ncontent_type,%{content_type}' \
+    "$url") >/dev/null
+res=$?
+
+if test $json -eq 1; then
+    echo "$output" | $lib/jq.py - error_code,$res
 else
-    echo 1
+    if [ $res -ne 0 ]; then
+        echo 0
+    else
+        echo 1
+    fi
 fi
