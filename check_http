@@ -3,17 +3,19 @@
 dir=$(dirname $0)
 lib="$dir/lib"
 
-opts=$(getopt -n check_http -- "rjt:" "$@") || exit 1
+opts=$(getopt -n check_http -- "rjct:" "$@") || exit 1
 eval set -- "$opts"
 
 timeout=2
 json=0
+content=0
 follow_redirects=
 
 while true; do
     case "$1" in
         -t) timeout=$2; shift;;
         -j) json=1;;
+        -c) content=1;;
         -r) follow_redirects="-L";;
         --) shift; break ;;
         *) echo "Unknown option '$1'"; exit 1;
@@ -23,23 +25,36 @@ done
 
 test $# -lt 1 && { echo "No url specified"; exit 1; }
 
+test $content -eq 1 -a $json -eq 1  && { echo "Cannot specify both -j and -c"; exit 1; }
+
 url=$1;
+outfile=/dev/null
+
+if [ $content -eq 1 ]
+then
+    outfile=$(mktemp)
+fi
 
 output=$(curl -m"$timeout"  \
     $follow_redirects \
     -s \
     --fail \
-    -o/dev/null \
+    -o$outfile \
     --write-out 'http_code,%{http_code}\ntime_total,%{time_total}\ncontent_type,%{content_type}' \
-    "$url") >/dev/null
+    "$url")
 res=$?
 
 if test $json -eq 1; then
     echo "$output" | $lib/jq.py - error_code,$res
 else
-    if [ $res -ne 0 ]; then
-        echo 0
+    if [ $content -eq 1 ]
+    then
+        cat "$outfile"
+        unlink "$outfile"
     else
-        echo 1
+        case $res in
+            0) echo 1;;
+            *) echo 0;;
+        esac
     fi
 fi
