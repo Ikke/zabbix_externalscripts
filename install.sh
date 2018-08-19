@@ -2,7 +2,7 @@
 
 DESTDIR=${DESTDIR-/usr/share/zabbix/externalscripts}
 
-scripts="check_crt.py check_http check_rsync"
+scripts="check_crt.py check_http check_rsync check_github_repo"
 libs="jq.py"
 
 for script in $scripts; do

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+repo=$1
+
+curl -Ss https://api.github.com/repos/$repo | jq .open_issues
